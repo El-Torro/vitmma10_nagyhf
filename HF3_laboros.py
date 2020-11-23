@@ -23,8 +23,8 @@ import pygame
 from pygame.locals import K_ESCAPE
 from threading import Lock
 
-from lanedetector import laneDetect
-from labor_img import process_img
+from linedetector import LineDetector
+from Estimator import Estimator
 from Fuzzy import createContorller
 
 IM_WIDTH = 640
@@ -32,10 +32,20 @@ IM_HEIGHT = 480
 seq = 0
 mutex = Lock()
 
+#---------------------------------------------------------
+#Linedetector, Estimator and Controller INIT
+estimator = Estimator()
+controller = createController()
+detector = LineDetector()
+#---------------------------------------------------------
+
 def frame_process(image):
-    process_img(image)
-    
-    
+    result, deviation, left_curverad = detector.process_image(image)
+    curvEst, slope, devEst = estimator.update(left_curverad, deviation)
+    controller .input['error' ] = devEst*4
+    controller .input['delta' ] = slope*40
+    controller .compute()
+    control = controller.output['out']
     
     return 0
 
@@ -65,7 +75,7 @@ try:
 
     # Select Tesla model 3 from library
     bp = blueprint_library.filter('model3')[0]
-    ##print(bp)
+    print(bp)
 
     # Select spawning point
     spawn_point = world.get_map().get_spawn_points()[3]
