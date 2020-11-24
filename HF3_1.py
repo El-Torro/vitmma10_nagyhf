@@ -3,6 +3,7 @@ from __future__ import print_function
 import glob
 import os
 import sys
+from time import time
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
@@ -13,6 +14,7 @@ except IndexError:
 import carla
 
 from carla import ColorConverter as cc
+from controller import PidController
 
 import random
 import time
@@ -28,8 +30,9 @@ from lanedetector import laneDetect
 IM_WIDTH = 640
 IM_HEIGHT = 480
 seq = 0
+x_dest = 0
 
-steer_d = 0
+controller = PidController(0.005, 0.001, 0.0001)
 
 mutex = Lock()
 
@@ -38,7 +41,13 @@ def process_img(image):
         return 0
     
     global seq
-    global steer_d
+    global x_dest
+    global controller
+    
+    white = (255, 255, 255) 
+    green = (0, 255, 0) 
+    blue = (0, 0, 128) 
+    font = pygame.font.Font('freesansbold.ttf', 32)
     
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
     array = np.reshape(array, (image.height, image.width, 4)) 
@@ -46,20 +55,30 @@ def process_img(image):
         return 0
     array = array[:, :, :3]
     array = array[:, :, ::-1]
-    surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-    display_surface.blit(surface_1_1, (0, 0))
-    img_proc, ldArray, steer_d = laneDetect(array, steer_d) 
+    #surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+    #display_surface.blit(surface_1_1, (0, 0))
+    img_proc, ldArray, x_dest = laneDetect(array, x_dest) 
     if ldArray is None:
         return 0
     
+    text = font.render(str(x_dest), True, green, blue)
+    textRect = text.get_rect()
+    textRect.center = (150, 530) 
+    display_surface.blit(text, textRect)
     
     
-    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=steer_d))
+    x_u = controller.check( x_dest )
+    text = font.render(str(x_u), True, green, blue)
+    textRect = text.get_rect()
+    textRect.center = (150, 580) 
+    display_surface.blit(text, textRect)
+    
+    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=x_u))
     
     surface_1_2 = pygame.surfarray.make_surface(img_proc.swapaxes(0, 1))
     display_surface.blit(surface_1_2, (640, 0))
     surface_2_1 = pygame.surfarray.make_surface(ldArray.swapaxes(0, 1))
-    display_surface.blit(surface_2_1, (0, 480))    
+    display_surface.blit(surface_2_1, (0, 0))    
     #pygame.display.flip()
     #pygame.display.update()
      
@@ -79,6 +98,7 @@ try:
     client = carla.Client('localhost', 2000)
     client.set_timeout(5.0)
     #client.load_world('Town04')
+    
     
     world = client.get_world()
     
@@ -101,7 +121,6 @@ try:
     spawn_point = world.get_map().get_spawn_points()[3]
 
     vehicle = world.spawn_actor(bp, spawn_point)
-    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=0.0))
     vehicle.set_autopilot(False)  # if you just wanted some NPCs to drive.
 
     actor_list.append(vehicle)
@@ -123,17 +142,22 @@ try:
     
     # add sensor to list of actors
     actor_list.append(sensor)
-
+    
+    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=0.0))
+    
     # Init display
     pygame.init() 
     display_surface = pygame.display.set_mode((1280, 960), pygame.HWSURFACE | pygame.DOUBLEBUF)
     pygame.display.set_caption('CARLA image') 
 
+    #print("Waiting for system startup")
+    #time.sleep(5)
+    
     # do something with this sensor
     sensor.listen(lambda data: process_img(data))
     
     # world.tick() # in case of synchronous simulation
-
+    
     clock = pygame.time.Clock()
     run = True
     while run:
