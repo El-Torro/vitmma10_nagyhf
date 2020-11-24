@@ -39,6 +39,7 @@ def process_img(image):
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
     array = np.reshape(array, (image.height, image.width, 4)) 
     if array is None:
+        print("Array was none")
         return 0
     array = array[:, :, :3]
     array = array[:, :, ::-1]
@@ -46,6 +47,7 @@ def process_img(image):
     display_surface.blit(surface_1_1, (0, 0))
     img_proc, ldArray = laneDetect(array) 
     if ldArray is None:
+        print("Array was none")
         return 0
     surface_1_2 = pygame.surfarray.make_surface(img_proc.swapaxes(0, 1))
     display_surface.blit(surface_1_2, (640, 0))
@@ -92,7 +94,7 @@ try:
     spawn_point = world.get_map().get_spawn_points()[3]
 
     vehicle = world.spawn_actor(bp, spawn_point)
-    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=0.0))
+    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=1.0))
     vehicle.set_autopilot(False)  # if you just wanted some NPCs to drive.
 
     actor_list.append(vehicle)
@@ -107,7 +109,7 @@ try:
     #blueprint.set_attribute('sensor_tick', '0.2')
 
     # Adjust sensor relative to vehicle
-    spawn_point = carla.Transform(carla.Location(x=2.5, z=0.7))
+    spawn_point = carla.Transform(carla.Location(x=2.5, z=0.0))
 
     # spawn the sensor and attach to vehicle.
     sensor = world.spawn_actor(blueprint, spawn_point, attach_to=vehicle)

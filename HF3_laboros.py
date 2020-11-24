@@ -25,7 +25,7 @@ from threading import Lock
 
 from linedetector import LineDetector
 from Estimator import Estimator
-from Fuzzy import createContorller
+#from Fuzzy import createContorller
 
 IM_WIDTH = 640
 IM_HEIGHT = 480
@@ -35,17 +35,34 @@ mutex = Lock()
 #---------------------------------------------------------
 #Linedetector, Estimator and Controller INIT
 estimator = Estimator()
-controller = createController()
+#controller = createController()
 detector = LineDetector()
 #---------------------------------------------------------
 
 def frame_process(image):
-    result, deviation, left_curverad = detector.process_image(image)
+    if not mutex.acquire(False):
+        return 0
+        
+    array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
+    array = np.reshape(array, (image.height, image.width, 4)) 
+    if array is None:
+        print("Array was none")
+        return 0
+    array = array[:, :, :3]
+    array = array[:, :, ::-1]
+    surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+    display_surface.blit(surface_1_1, (0, 0))
+    
+    
+    result, deviation, left_curverad = detector.process_image(array)
+    print("1")
     curvEst, slope, devEst = estimator.update(left_curverad, deviation)
-    controller .input['error' ] = devEst*4
-    controller .input['delta' ] = slope*40
-    controller .compute()
-    control = controller.output['out']
+    print("2")
+    #controller .input['error' ] = devEst*4
+    #controller .input['delta' ] = slope*40
+    #controller .compute()
+    #control = controller.output['out']
+    mutex.release()
     
     return 0
 

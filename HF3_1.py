@@ -35,7 +35,7 @@ def process_img(image):
         return 0
     
     global seq
-    
+    steer_d = 0
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
     array = np.reshape(array, (image.height, image.width, 4)) 
     if array is None:
@@ -44,9 +44,14 @@ def process_img(image):
     array = array[:, :, ::-1]
     surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
     display_surface.blit(surface_1_1, (0, 0))
-    img_proc, ldArray = laneDetect(array) 
+    img_proc, ldArray, steer_d = laneDetect(array) 
     if ldArray is None:
         return 0
+    
+    
+    
+    vehicle.apply_control(carla.VehicleControl(throttle=0.3, steer=steer_d))
+    
     surface_1_2 = pygame.surfarray.make_surface(img_proc.swapaxes(0, 1))
     display_surface.blit(surface_1_2, (640, 0))
     surface_2_1 = pygame.surfarray.make_surface(ldArray.swapaxes(0, 1))

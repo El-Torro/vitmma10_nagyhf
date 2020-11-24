@@ -162,7 +162,7 @@ class LineDetector(object):
     def process_image(self, image):
 
         roi = image[450:710, 220:1150]
-
+        
         # Thresholding
         binary = apply_thresholds(roi)
 
@@ -179,16 +179,16 @@ class LineDetector(object):
         left_curverad, right_curverad = self.measure_curvature(ret)
 
         # Sanity check
-        if not self.sanity(ret,left_curverad,right_curverad):
+        #if not self.sanity(ret,left_curverad,right_curverad):
             # Use last good images if sanity check fails
-            binary_warped = self.used_warped
-            ret = self.used_ret
+        #    binary_warped = self.used_warped
+        #    ret = self.used_ret
 
         result = image
 
         # Visualizing Lane Lines Info
         result[450:710, 220:1150] = self.draw_lane_lines(roi, binary_warped, Minv, ret)
-
+        
         # Compute deviation
         deviation_pixels = image.shape[1]/2 - abs(ret['right_fitx'][-1] - ret['left_fitx'][-1])
         xm_per_pix = 3.7/(650)

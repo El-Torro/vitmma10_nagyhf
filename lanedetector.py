@@ -5,7 +5,7 @@ def laneDetect(img):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, w = img.shape[:2]
 
-    mask_yellow = cv2.inRange(hsv, (40, 0, 150),(80, 255, 255))
+    mask_yellow = cv2.inRange(hsv, (20, 0, 100),(100, 255, 255))
     mask_white = cv2.inRange(hsv, (0, 0, 100),(255, 9, 255))
     mask = cv2.bitwise_or(mask_yellow, mask_white)
     img2 = cv2.bitwise_and(img, img, mask=mask)
@@ -35,17 +35,86 @@ def laneDetect(img):
 
     # draw unwrapped Hough lines
     if lines is None:
-        return img4
-        
+        return img_proc, img4
+    line_left = [0, 0, 0, 0]
+    dist_left_prev = 200000
+    line_right = [0, 0, 0, 0]
+    dist_right_prev = 200000
+    
+    
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        src = np.zeros((1, 1, 2))
-        src[:, 0] = [x1, y1]
-        dst = cv2.perspectiveTransform(src, minv)
-        ox1, oy1 = dst[:, 0, 0], dst[:, 0, 1]
-        src[:, 0] = [x2, y2]
-        dst = cv2.perspectiveTransform(src, minv)
-        ox2, oy2 = dst[:, 0, 0], dst[:, 0, 1]
-        cv2.line(img4, (int(ox1), int(oy1)), (int(ox2), int(oy2)), (255, 0, 0), 3)
-
-    return img_proc, img4
+        x1 = x1 - 320
+        y1 = 480 - y1
+        
+        x2 = x2 - 320
+        y2 = 480 - y2
+        
+        theta = (x1 - x2) / (y1 - y2)
+        distance = ( (( x2 - x1 )* (-y2))/(y2 - y1) ) - x1
+        
+        #left side
+        if x1 < 320 and x2 < 320 :
+            if line_left == [0, 0, 0, 0]:
+                line_left = [x1, y1, x2, y2]
+                dist_left_prev = distance
+            else : 
+                if dist_left_prev < distance :
+                    line_left = [x1, y1, x2, y2]
+                    dist_left_prev = distance
+            
+        if x1 > 320 and x2 > 320 :
+            if line_right == [0, 0, 0, 0]:
+                line_right = [x1, y1, x2, y2]
+                dist_right_prev = distance
+            else :
+                if dist_right_prev > distance :
+                    line_right = [x1, y1, x2, y2]
+                    dist_right_prev = distance
+    
+    
+    x1_left, y1_left, x2_left, y2_left = line_left
+    x1_left = x1_left + 320
+    y1_left = 480 - y1_left
+    x2_left = x2_left + 320
+    y2_left = 480 - y2_left
+    
+    
+    x1_right, y1_right, x2_right, y2_right = line_right
+    x1_right = x1_right + 320
+    y1_right = 480 - y1_right
+    x2_right = x2_right + 320
+    y2_right = 480 - y2_right
+    
+    
+    src_left = np.zeros((1, 1, 2))
+    src_left[:, 0] = [x1_left, y1_left]
+    dst_left = cv2.perspectiveTransform(src_left, minv)
+    ox1_left, oy1_left = dst_left[:, 0, 0], dst_left[:, 0, 1]
+    src_left[:, 0] = [x2_left, y2_left]
+    dst_left = cv2.perspectiveTransform(src_left, minv)
+    ox2_left, oy2_left = dst_left[:, 0, 0], dst_left[:, 0, 1]
+    cv2.line(img4, (int(ox1_left), int(oy1_left)), (int(ox2_left), int(oy2_left)), (255, 0, 0), 3)
+    
+    src_right = np.zeros((1, 1, 2))
+    src_right[:, 0] = [x1_right, y1_right]
+    dst_right = cv2.perspectiveTransform(src_right, minv)
+    ox1_right, oy1_right = dst_right[:, 0, 0], dst_right[:, 0, 1]
+    src_right[:, 0] = [x2_right, y2_right]
+    dst_right = cv2.perspectiveTransform(src_right, minv)
+    ox2_right, oy2_right = dst_right[:, 0, 0], dst_right[:, 0, 1]
+    cv2.line(img4, (int(ox1_right), int(oy1_right)), (int(ox2_right), int(oy2_right)), (255, 0, 0), 3)
+    
+    x_dest = (dist_right_prev + dist_left_prev) / 2
+    
+    steer_d = -x_dest / 320
+    
+    if steer_d > 0.3:
+        steer_d = 0.3
+    
+    if steer_d < -0.3:
+        steer_d = -0.3
+    
+    print(dist_left_prev, dist_right_prev, steer_d)
+    
+    return img_proc, img4, steer_d
