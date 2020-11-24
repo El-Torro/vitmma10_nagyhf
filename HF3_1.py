@@ -28,6 +28,9 @@ from lanedetector import laneDetect
 IM_WIDTH = 640
 IM_HEIGHT = 480
 seq = 0
+
+steer_d = 0
+
 mutex = Lock()
 
 def process_img(image):
@@ -35,7 +38,8 @@ def process_img(image):
         return 0
     
     global seq
-    steer_d = 0
+    global steer_d
+    
     array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
     array = np.reshape(array, (image.height, image.width, 4)) 
     if array is None:
@@ -44,7 +48,7 @@ def process_img(image):
     array = array[:, :, ::-1]
     surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
     display_surface.blit(surface_1_1, (0, 0))
-    img_proc, ldArray, steer_d = laneDetect(array) 
+    img_proc, ldArray, steer_d = laneDetect(array, steer_d) 
     if ldArray is None:
         return 0
     
@@ -60,7 +64,7 @@ def process_img(image):
     #pygame.display.update()
      
     #print(seq)
-    seq = seq + 1
+    #seq = seq + 1
     # world.tick()  # In case of synchronous simulation
     mutex.release()
     
