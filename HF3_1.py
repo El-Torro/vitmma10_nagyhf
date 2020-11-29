@@ -32,7 +32,7 @@ IM_HEIGHT = 480
 seq = 0
 x_dest = 0
 
-controller = PidController(0.001, 0.001, 0.00001)
+controller = PidController(0.001, 0.001, 0.000001)
 
 mutex = Lock()
 
@@ -61,6 +61,10 @@ def process_img(image):
     if ldArray is None:
         return 0
     
+    black_img = np.array(array)
+    black_img[:,:] = 0
+    surface_2_1 = pygame.surfarray.make_surface(black_img.swapaxes(0, 1))
+    display_surface.blit(surface_2_1, (0, 480))   
     
     text = font.render(str(x_dest), True, green, blue)
     textRect = text.get_rect()
@@ -75,12 +79,14 @@ def process_img(image):
     textRect.center = (300, 580) 
     display_surface.blit(text, textRect)
 
-    vehicle.apply_control(carla.VehicleControl(throttle=0.4, steer=x_u))
+    vehicle.apply_control(carla.VehicleControl(throttle=0.4, steer= x_u))
     
-    surface_1_2 = pygame.surfarray.make_surface(img_proc.swapaxes(0, 1))
-    display_surface.blit(surface_1_2, (640, 0))
-    surface_2_1 = pygame.surfarray.make_surface(ldArray.swapaxes(0, 1))
-    display_surface.blit(surface_2_1, (0, 0))    
+    surface_1_1 = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+    display_surface.blit(surface_1_1, (0, 0))   
+    surface_1_2 = pygame.surfarray.make_surface(ldArray.swapaxes(0, 1))
+    display_surface.blit(surface_1_2, (640, 0))   
+    surface_2_2 = pygame.surfarray.make_surface(img_proc.swapaxes(0, 1))
+    display_surface.blit(surface_2_2, (640, 480)) 
     #pygame.display.flip()
     #pygame.display.update()
      
